@@ -38,8 +38,13 @@ const FileSizeHi = 16 * 1024 * 1024 // 16 MB
 const DictColumnCount = 2
 const MaxDictRows = 65536
 
+// Hexdump
+const CharLen = 1
+const LineLen = 16
+const PageLen = 256
+
 // Help hint for errors
-const HelpHint = "Run \"ff-16\" without parameters for help."
+const HelpHint = "Run \"ff-16-tui\" without parameters for help."
 
 // Worst case array size for varying gaps
 // +1 for gap=0
@@ -51,6 +56,16 @@ type PatternInfo struct {
 	Gap       int   // Number of bytes between First and Second
 	Hits      int   // Count of matches
 	Positions []int // Positions of matches
+}
+
+type UpdateState struct {
+	Offset      int64
+	MinGap      int
+	MaxGap      int
+	Threshold   int
+	MinOnes     int
+	MaxOnes     int
+	HighlightId int
 }
 
 func PanicIfError(e error) {
@@ -91,8 +106,8 @@ func PrintHexDump(offset int64, data []byte, positions []int) {
 		lookupTable[pos] = true
 	}
 
-	for i := 0; i < len(data); i += 0x10 {
-		end := i + 0x10
+	for i := 0; i < len(data); i += LineLen {
+		end := i + LineLen
 		if end > len(data) {
 			end = len(data)
 		}
@@ -127,24 +142,24 @@ func PrintHexDump(offset int64, data []byte, positions []int) {
 	}
 }
 
-func Update(inFile *os.File, offset int64, blockBuf []byte, minGap int, maxGap int, threshold int, dictRecords [][]string, dictRecordCount int, inFileSize int, minOnes int, maxOnes int, topSelect int) {
+func Update(inFile *os.File, inFileSize int, blockBuf []byte, dictRecords [][]string, dictRecordCount int, state *UpdateState) {
 	// Clear the terminal screen
 	fmt.Print("\033[2J\033[H")
-	fmt.Printf("┌──────────────────────────────── ←→ ↑↓ PgUp PgDn Home End ───────────[%3d%%]┐\r\n", offset*100/int64(inFileSize))
+	fmt.Printf("┌──────────────────────────────── ←→ ↑↓ PgUp PgDn Home End ───────────[%3d%%]┐\r\n", state.Offset*100/int64(inFileSize))
 
 	// Read block of data
-	bytesRead, err := inFile.ReadAt(blockBuf, offset)
+	bytesRead, err := inFile.ReadAt(blockBuf, state.Offset)
 	PanicIfError(err)
 
 	blockFreqTable := make(map[string]PatternInfo)
 
 	// Build pattern frequency table for the block
-	for gapIdx := minGap; gapIdx <= maxGap; gapIdx++ {
+	for gapIdx := state.MinGap; gapIdx <= state.MaxGap; gapIdx++ {
 		for bufIdx := 0; bufIdx < bytesRead-1-GapTable[gapIdx]; bufIdx++ {
 
 			ones := bits.OnesCount8(blockBuf[bufIdx]) + bits.OnesCount8(blockBuf[bufIdx+GapTable[gapIdx]+1])
 
-			if ones < minOnes || ones > maxOnes {
+			if ones < state.MinOnes || ones > state.MaxOnes {
 				continue
 			}
 
@@ -183,7 +198,7 @@ func Update(inFile *os.File, offset int64, blockBuf []byte, minGap int, maxGap i
 		}
 	}
 
-	PrintHexDump(offset, blockBuf, blockFreqTable[topKeys[topSelect]].Positions)
+	PrintHexDump(state.Offset, blockBuf, blockFreqTable[topKeys[state.HighlightId]].Positions)
 
 	fmt.Printf("├─────────────────────────────────────────── 0-9 Highlight ─────────────────┤\r\n")
 
@@ -193,7 +208,7 @@ func Update(inFile *os.File, offset int64, blockBuf []byte, minGap int, maxGap i
 		printable := "-"
 		hitFreq := "-"
 		dict := "-"
-		if topHits[i] >= threshold {
+		if topHits[i] >= state.Threshold {
 			if blockFreqTable[topKeys[i]].Gap == 0 {
 				hex = fmt.Sprintf("%02X %02X", blockFreqTable[topKeys[i]].First, blockFreqTable[topKeys[i]].Second)
 			} else {
@@ -212,7 +227,7 @@ func Update(inFile *os.File, offset int64, blockBuf []byte, minGap int, maxGap i
 			}
 
 			ones := bits.OnesCount8(blockFreqTable[topKeys[i]].First) + bits.OnesCount8(blockFreqTable[topKeys[i]].Second)
-			if topSelect == i {
+			if state.HighlightId == i {
 				fmt.Printf("│\033[30;43m%d %-12s %5s   %2d %4s %s\033[0m", i, hex, printable, ones, hitFreq, dict)
 			} else {
 				fmt.Printf("│%d %-12s %5s   %2d %4s %s", i, hex, printable, ones, hitFreq, dict)
@@ -225,7 +240,7 @@ func Update(inFile *os.File, offset int64, blockBuf []byte, minGap int, maxGap i
 	}
 
 	fmt.Printf("├── q/a  w/s ────── e/d  r/f ────────── t/g ────────────────────────────────┤\r\n")
-	fmt.Printf("│Gap: %d..%d\r\033[16G│Ones: %d..%d\r\033[30G│Threshold: %d\r\033[77G│\r\n", minGap, maxGap, minOnes, maxOnes, threshold)
+	fmt.Printf("│Gap: %d..%d\r\033[16G│Ones: %d..%d\r\033[30G│Threshold: %d\r\033[77G│\r\n", state.MinGap, state.MaxGap, state.MinOnes, state.MaxOnes, state.Threshold)
 	fmt.Printf("└─────────────────────────────────────────────────────────────────── x Exit ┘\r\n")
 }
 
@@ -240,7 +255,7 @@ func main() {
 	fileName := ""
 	dictFileName := DefDictFileName
 	minGap := DefMinGap
-	gap := DefMaxGap
+	maxGap := DefMaxGap
 	threshold := DefThreshold
 	minOnes := MinOnes
 	maxOnes := MaxOnes
@@ -325,8 +340,18 @@ func main() {
 	}
 	offset := int64(0)
 
-	topSelect := 0
-	Update(inFile, offset, blockBuf, minGap, gap, threshold, dictRecords, dictRecordCount, inFileSize, minOnes, maxOnes, topSelect)
+	highlightId := 0
+	state := UpdateState{
+		Offset:      offset,
+		MinGap:      minGap,
+		MaxGap:      maxGap,
+		Threshold:   threshold,
+		MinOnes:     minOnes,
+		MaxOnes:     maxOnes,
+		HighlightId: highlightId,
+	}
+
+	Update(inFile, inFileSize, blockBuf, dictRecords, dictRecordCount, &state)
 
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	PanicIfError(err)
@@ -341,57 +366,57 @@ func main() {
 		case 'x':
 			return
 		case 'q':
-			minGap += 1
-			if minGap > MaxGapHi {
-				minGap = MaxGapHi
+			state.MinGap += 1
+			if state.MinGap > MaxGapHi {
+				state.MinGap = MaxGapHi
 			}
 		case 'a':
-			minGap -= 1
-			if minGap < DefMinGap {
-				minGap = DefMinGap
+			state.MinGap -= 1
+			if state.MinGap < DefMinGap {
+				state.MinGap = DefMinGap
 			}
 		case 'w':
-			gap += 1
-			if gap > MaxGapHi {
-				gap = MaxGapHi
+			state.MaxGap += 1
+			if state.MaxGap > MaxGapHi {
+				state.MaxGap = MaxGapHi
 			}
 		case 's':
-			gap -= 1
-			if gap < DefMinGap {
-				gap = DefMinGap
+			state.MaxGap -= 1
+			if state.MaxGap < DefMinGap {
+				state.MaxGap = DefMinGap
 			}
 		case 'e':
-			minOnes += 1
-			if minOnes > MaxOnes {
-				minOnes = MaxOnes
+			state.MinOnes += 1
+			if state.MinOnes > MaxOnes {
+				state.MinOnes = MaxOnes
 			}
 		case 'd':
-			minOnes -= 1
-			if minOnes < MinOnes {
-				minOnes = MinOnes
+			state.MinOnes -= 1
+			if state.MinOnes < MinOnes {
+				state.MinOnes = MinOnes
 			}
 		case 'r':
-			maxOnes += 1
-			if maxOnes > MaxOnes {
-				maxOnes = MaxOnes
+			state.MaxOnes += 1
+			if state.MaxOnes > MaxOnes {
+				state.MaxOnes = MaxOnes
 			}
 		case 'f':
-			maxOnes -= 1
-			if maxOnes < MinOnes {
-				maxOnes = MinOnes
+			state.MaxOnes -= 1
+			if state.MaxOnes < MinOnes {
+				state.MaxOnes = MinOnes
 			}
 		case 't':
-			threshold += 1
-			if threshold > ThresholdHi {
-				threshold = ThresholdHi
+			state.Threshold += 1
+			if state.Threshold > ThresholdHi {
+				state.Threshold = ThresholdHi
 			}
 		case 'g':
-			threshold -= 1
-			if threshold < ThresholdLo {
-				threshold = ThresholdLo
+			state.Threshold -= 1
+			if state.Threshold < ThresholdLo {
+				state.Threshold = ThresholdLo
 			}
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			topSelect = int(buf[0] - '0')
+			state.HighlightId = int(buf[0] - '0')
 		case '\x1b':
 			// ESC
 			os.Stdin.Read(buf)
@@ -403,39 +428,39 @@ func main() {
 			switch buf[0] {
 			case 'A':
 				// Up arrow
-				offset = max(offset-0x10, 0)
+				state.Offset = max(state.Offset-LineLen, 0)
 			case 'B':
 				// Down arrow
-				offset = min(offset+0x10, int64(inFileSize)-BlockSize)
+				state.Offset = min(state.Offset+LineLen, int64(inFileSize)-BlockSize)
 			case 'C':
 				// Right arrow
-				offset = min(offset+1, int64(inFileSize)-BlockSize)
+				state.Offset = min(state.Offset+CharLen, int64(inFileSize)-BlockSize)
 			case 'D':
 				// Left arrow
-				offset = max(offset-1, 0)
+				state.Offset = max(state.Offset-CharLen, 0)
 			case 'H':
 				// Home
-				offset = 0
+				state.Offset = 0
 			case 'F':
 				// End
-				offset = int64(inFileSize) - BlockSize
+				state.Offset = int64(inFileSize) - BlockSize
 			case '5':
 				// Page up
 				os.Stdin.Read(buf)
 				if buf[0] == '~' {
 					// Page up
-					offset = max(offset-0x100, 0)
+					state.Offset = max(state.Offset-PageLen, 0)
 				}
 			case '6':
 				// Page down
 				os.Stdin.Read(buf)
 				if buf[0] == '~' {
 					// Page down
-					offset = min(offset+0x100, int64(inFileSize)-BlockSize)
+					state.Offset = min(state.Offset+PageLen, int64(inFileSize)-BlockSize)
 				}
 			}
 		}
 
-		Update(inFile, offset, blockBuf, minGap, gap, threshold, dictRecords, dictRecordCount, inFileSize, minOnes, maxOnes, topSelect)
+		Update(inFile, inFileSize, blockBuf, dictRecords, dictRecordCount, &state)
 	}
 }
