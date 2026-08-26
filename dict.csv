@@ -1,0 +1,133 @@
+#Sample dictionary
+#https://github.com/HexLasso/FF-16
+
+#Text
+0D 0A;       Text.NewLine|CRLF
+30 30;       Text.Decimal
+20 20;       Text.Space
+2C 20;       Text.CommaSpace
+
+#Internet
+3D 22;       Text.StrAssign
+3D 3D;       Text.EqualityCheck
+3E 3C;       Text.MarkupTag
+25 32;       Text.PercentEncoding
+
+#PDF
+30 +(19) 30; Pdf.XrefTable
+
+#Most common English bigrams
+#https://en.wikipedia.org/wiki/Bigram
+74 68;       Text.Eng
+68 65;       Text.Eng
+69 6E;       Text.Eng
+65 72;       Text.Eng
+61 6E;       Text.Eng
+72 65;       Text.Eng
+6F 6E;       Text.Eng
+61 74;       Text.Eng
+65 6E;       Text.Eng
+6E 64;       Text.Eng
+74 69;       Text.Eng
+65 73;       Text.Eng
+6F 72;       Text.Eng
+74 65;       Text.Eng
+6F 66;       Text.Eng
+65 64;       Text.Eng
+69 73;       Text.Eng
+69 74;       Text.Eng
+61 6C;       Text.Eng
+61 72;       Text.Eng
+73 74;       Text.Eng
+74 6F;       Text.Eng
+6E 74;       Text.Eng
+6E 67;       Text.Eng
+73 65;       Text.Eng
+68 61;       Text.Eng
+61 73;       Text.Eng
+6F 75;       Text.Eng
+69 6F;       Text.Eng
+6C 65;       Text.Eng
+76 65;       Text.Eng
+63 6F;       Text.Eng
+6D 65;       Text.Eng
+64 65;       Text.Eng
+68 69;       Text.Eng
+72 69;       Text.Eng
+72 6F;       Text.Eng
+69 63;       Text.Eng
+6E 65;       Text.Eng
+65 61;       Text.Eng
+72 61;       Text.Eng
+63 65;       Text.Eng
+
+#Structure
+00 +(1) 00;  Stride2|Word|Unicode
+00 +(2) 00;  Stride3|24-bit
+00 +(3) 00;  Stride4|Dword
+00 +(7) 00;  Stride8|Qword
+
+#x86
+0F 82;       x86.jc
+0F 83;       x86.jnc
+0F 84;       x86.jz
+0F 85;       x86.jnz
+0F AF;       x86.imul
+0F B6;       x86.movzx
+0F +(3) 0F;  x86.prefix
+33 C0;       x86.xor
+41 3B;       x86.cmp
+41 83;       x86.prefix
+41 8B;       x86.mov
+44 +(2) 41;  x86.prefix
+48 83;       x86.dec
+48 89;       x86.mov
+48 8B;       x86.mov
+48 8D;       x86.lea
+48 +(2) 24;  x86.prefix
+48 +(3) 48;  x86.prefix
+48 +(4) 48;  x86.prefix
+4C 89;       x86.mov
+55 8B;       x86.prologue
+5D C3;       x86.epilogue
+66 83;       x86.cmp
+83 F8;       x86.cmp
+83 FF;       x86.cmp
+85 C0;       x86.test
+89 45;       x86.mov
+89 4D;       x86.mov
+89 +(1) 24;  x86.mov
+8B 45;       x86.mov
+8B +(1) 48;  x86.mov
+8B +(1) 8B;  x86.mov
+8B +(1) C1;  x86.mov
+8B +(3) 8B;  x86.mov
+8B +(6) 8B;  x86.mov
+90 90;       x86.nop|align
+E8 +(3) 00;  x86.call
+E8 +(3) FF;  x86.call
+E9 +(3) 00;  x86.jmp
+E9 +(3) FF;  x86.jmp
+CC CC;       x86.int3|align
+FF 15;       x86.call
+FF 25;       x86.jmp
+FF 75;       x86.push
+
+#MSIL
+28 +(2) 00;  IL.call
+6F +(2) 00;  IL.callvirt
+72 +(2) 00;  IL.ldstr
+7E +(3) 04;  IL.ldsfld
+28 +(3) 0A;  IL.call
+28 +(3) 06;  IL.call
+6F +(3) 0A;  IL.callvirt
+6F +(3) 06;  IL.callvirt
+7B +(3) 04;  IL.ldfld
+7D +(3) 04;  IL.stfld
+
+#Windows
+40 00;       ImageBase
+
+#Binary
+00 00;       null|align|sparse
+FF FF;       negative|align
