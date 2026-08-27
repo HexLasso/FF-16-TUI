@@ -1,3 +1,7 @@
+// FF-16-TUI, stands for Find Frequent 16-bit Text User Interface,
+// interactively searches for frequent 16-bit patterns in a given file
+//
+// The latest version can be accessed at https://github.com/HexLasso/FF-16-TUI
 package main
 
 import (
@@ -198,7 +202,11 @@ func Update(inFile *os.File, inFileSize int, blockBuf []byte, dictRecords [][]st
 		}
 	}
 
-	PrintHexDump(state.Offset, blockBuf, blockFreqTable[topKeys[state.HighlightId]].Positions)
+	if topHits[state.HighlightId] >= state.Threshold {
+		PrintHexDump(state.Offset, blockBuf, blockFreqTable[topKeys[state.HighlightId]].Positions)
+	} else {
+		PrintHexDump(state.Offset, blockBuf, nil)
+	}
 
 	fmt.Printf("├─────────────────────────────────────────── 0-9 Highlight ─────────────────┤\r\n")
 
