@@ -16,3 +16,56 @@ ff-16-tui [filename] [-d <filename>]
   <filename>      Target file
   -d <filename>   Dictionary file  (Default: dict.csv)
 ```
+
+## Keyboard shortcuts
+
+Hexdump panel:
+
+| Key | Function |
+| --- | --- |
+| ← | Previous byte |
+| → | Next byte |
+| ↑ | Previous line |
+| ↓ | Next line |
+| PgUp | Previous page |
+| PgDn | Next page |
+| Home | Beginning of file |
+| End | End of file |
+
+Pattern panel:
+
+| Key | Function |
+| --- | --- |
+| 0 | Highlight pattern (most frequent) |
+| 1 | Highlight pattern |
+| 2 | Highlight pattern |
+| 3 | Highlight pattern |
+| 4 | Highlight pattern |
+| 5 | Highlight pattern |
+| 6 | Highlight pattern |
+| 7 | Highlight pattern |
+| 8 | Highlight pattern |
+| 9 | Highlight pattern (least frequent) |
+
+Filter panel:
+
+| Key | Function |
+| --- | --- |
+| q | Increase the minimum gap |
+| s | Decrease the minimum gap |
+| w | Increase the maximum gap |
+| s | Decrease the maximum gap |
+| e | Increase the minimum set bits |
+| d | Decrease the minimum set bits |
+| r | Increase the maximum set bits |
+| f | Decrease the maximum set bits |
+| t | Increase the threshold |
+| g | Decrease the threashold |
+
+## Terminologies
+
+| Term | Description |
+| --- | --- |
+| Ones | The number of bits set in the pattern. |
+| Freq | The frequency of the pattern. |
+| Dict | The dictionary entry for the pattern. |
