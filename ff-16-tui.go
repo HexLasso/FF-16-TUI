@@ -16,7 +16,7 @@ import (
 )
 
 // Last update
-const LastUpdate = "26-Aug-2026"
+const LastUpdate = "28-Aug-2026"
 
 // Block size is 256 bytes
 const BlockSize = 256
@@ -374,9 +374,11 @@ func main() {
 		case 'x':
 			return
 		case 'q':
-			state.MinGap += 1
-			if state.MinGap > MaxGapHi {
-				state.MinGap = MaxGapHi
+			if state.MaxGap > state.MinGap {
+				state.MinGap += 1
+				if state.MinGap > MaxGapHi {
+					state.MinGap = MaxGapHi
+				}
 			}
 		case 'a':
 			state.MinGap -= 1
@@ -389,14 +391,18 @@ func main() {
 				state.MaxGap = MaxGapHi
 			}
 		case 's':
-			state.MaxGap -= 1
-			if state.MaxGap < DefMinGap {
-				state.MaxGap = DefMinGap
+			if state.MaxGap > state.MinGap {
+				state.MaxGap -= 1
+				if state.MaxGap < DefMinGap {
+					state.MaxGap = DefMinGap
+				}
 			}
 		case 'e':
-			state.MinOnes += 1
-			if state.MinOnes > MaxOnes {
-				state.MinOnes = MaxOnes
+			if state.MaxOnes > state.MinOnes {
+				state.MinOnes += 1
+				if state.MinOnes > MaxOnes {
+					state.MinOnes = MaxOnes
+				}
 			}
 		case 'd':
 			state.MinOnes -= 1
@@ -409,9 +415,11 @@ func main() {
 				state.MaxOnes = MaxOnes
 			}
 		case 'f':
-			state.MaxOnes -= 1
-			if state.MaxOnes < MinOnes {
-				state.MaxOnes = MinOnes
+			if state.MaxOnes > state.MinOnes {
+				state.MaxOnes -= 1
+				if state.MaxOnes < MinOnes {
+					state.MaxOnes = MinOnes
+				}
 			}
 		case 't':
 			state.Threshold += 1
