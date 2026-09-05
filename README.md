@@ -62,6 +62,12 @@ Filter panel:
 | t | Increase the threshold |
 | g | Decrease the threashold |
 
+Exit:
+
+| Key | Function |
+| --- | --- |
+| x | Exit |
+
 ## Terminologies
 
 | Term | Description |
